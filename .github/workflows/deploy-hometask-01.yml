@@ -77,15 +77,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Create deployment archive
-        run: |
-          tar \
-            --exclude=node_modules \
-            --exclude=dist \
-            -czf "$RUNNER_TEMP/hometask-01.tar.gz" \
-            Dockerfile compose.yaml .dockerignore \
-            package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json src
-
       - name: Configure SSH
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -97,57 +88,10 @@ jobs:
             '45.129.186.199 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDA1ov6b9SEvshiEowGbRqDBoJf2/39eoHhqrsXfjC07' \
             > "$RUNNER_TEMP/ssh/known_hosts"
 
-      - name: Upload release
-        run: |
-          scp \
-            -i "$RUNNER_TEMP/ssh/deploy_key" \
-            -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
-            "$RUNNER_TEMP/hometask-01.tar.gz" \
-            root@45.129.186.199:/tmp/hometask-01-${GITHUB_SHA}.tar.gz
-
-      - name: Start isolated Compose project
+      - name: Deploy image on VPS
         run: |
           ssh \
             -i "$RUNNER_TEMP/ssh/deploy_key" \
             -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
-            root@45.129.186.199 \
-            "RELEASE_SHA=${GITHUB_SHA} bash -s" <<'REMOTE'
-          set -euo pipefail
-
-          release_dir="/opt/hometask-01/releases/${RELEASE_SHA}"
-          mkdir -p "$release_dir"
-          tar -xzf "/tmp/hometask-01-${RELEASE_SHA}.tar.gz" -C "$release_dir"
-          rm "/tmp/hometask-01-${RELEASE_SHA}.tar.gz"
-
-          ln -sfn "$release_dir" /opt/hometask-01/current
-          docker compose \
-            --project-name hometask01 \
-            --file /opt/hometask-01/current/compose.yaml \
-            up --detach --build
-
-          container_id="$(docker compose \
-            --project-name hometask01 \
-            --file /opt/hometask-01/current/compose.yaml \
-            ps --quiet app)"
-
-          for attempt in $(seq 1 12); do
-            health="$(docker inspect --format '{{.State.Health.Status}}' "$container_id")"
-            if [ "$health" = healthy ]; then
-              break
-            fi
-            if [ "$health" = unhealthy ]; then
-              docker logs "$container_id"
-              exit 1
-            fi
-            sleep 5
-          done
-
-          if [ "$(docker inspect --format '{{.State.Health.Status}}' "$container_id")" != healthy ]; then
-            docker logs "$container_id"
-            exit 1
-          fi
-
-          docker image prune \
-            --force \
-            --filter label=com.docker.compose.project=hometask01
-          REMOTE
+            deploy@45.129.186.199 \
+            "deploy ${GITHUB_SHA}"
