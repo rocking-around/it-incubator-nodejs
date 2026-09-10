@@ -30,7 +30,9 @@ jobs:
       - name: Set up pnpm and Node.js
         uses: pnpm/setup@v2
         with:
-          working-directory: hometask_01
+          version: 12.3.4
+          package-json-file: hometask_01/package.json
+          cache-dependency-path: hometask_01/pnpm-lock.yaml
           runtime: node@24
           install: false
           cache: true
