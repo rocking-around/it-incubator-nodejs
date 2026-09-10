@@ -1,7 +1,23 @@
 import {Request, Response, Router} from "express";
 import {db} from "../db/db";
+import {APIErrorResult} from "../models/APIErrorResult";
+import {CreateVideoInputModel} from "../models/CreateVideoInputModel";
+import {FieldError} from "../models/FieldError";
+import {UpdateVideoInputModel} from "../models/UpdateVideoInputModel";
+import {Video} from "../models/Video";
+import {
+    missingVideoIdError,
+    validateCreateVideoInput,
+    validateUpdateVideoInput,
+    validateVideoId,
+} from "../validation/videos-validation";
 
 export const videosRouter = Router({})
+
+const sendBadRequest = (res: Response, errorsMessages: FieldError[]) => {
+    const errorResult: APIErrorResult = {errorsMessages};
+    return res.status(400).send(errorResult);
+};
 
 
 videosRouter.get("/", (req: Request, res: Response) => {
@@ -9,26 +25,35 @@ videosRouter.get("/", (req: Request, res: Response) => {
 })
 
 videosRouter.post("/", (req, res) => {
-    //1) проверяем приходящие данные на валидность (добавим на следующем шаге)
-    //2) создаем newDriver
+    const errors = validateCreateVideoInput(req.body);
+    if (errors.length > 0) {
+        return sendBadRequest(res, errors);
+    }
+
+    const input = req.body as CreateVideoInputModel;
     const lastVideo = db.videos[db.videos.length - 1];
     const newVideo: Video = {
         id: lastVideo ? lastVideo.id + 1 : 1,
-        title: req.body.title,
-        author: req.body.author,
+        title: input.title,
+        author: input.author,
         canBeDownloaded: false,
         minAgeRestriction: null,
         createdAt: new Date().toISOString(),
         publicationDate: new Date(
             Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
-        availableResolutions: req.body.availableResolutions,
+        availableResolutions: input.availableResolutions,
     };
     db.videos.push(newVideo);
     res.status(201).send(newVideo);
 });
 
 videosRouter.get("/:id", (req: Request, res: Response) => {
+    const errors = validateVideoId(req.params.id);
+    if (errors.length > 0) {
+        return sendBadRequest(res, errors);
+    }
+
     const id = Number(req.params.id);
     const video = db.videos.find(v => v.id === id);
     if (video) {
@@ -38,6 +63,11 @@ videosRouter.get("/:id", (req: Request, res: Response) => {
 })
 
 videosRouter.put("/:id", (req: Request, res: Response) => {
+    const idErrors = validateVideoId(req.params.id);
+    if (idErrors.length > 0) {
+        return sendBadRequest(res, idErrors);
+    }
+
     const id = Number(req.params.id);
     const video = db.videos.find(v => v.id === id);
 
@@ -45,7 +75,12 @@ videosRouter.put("/:id", (req: Request, res: Response) => {
         return res.status(404).send();
     }
 
-    const input: UpdateVideoInputModel = req.body;
+    const bodyErrors = validateUpdateVideoInput(req.body);
+    if (bodyErrors.length > 0) {
+        return sendBadRequest(res, bodyErrors);
+    }
+
+    const input = req.body as UpdateVideoInputModel;
 
     video.title = input.title;
     video.author = input.author;
@@ -58,6 +93,11 @@ videosRouter.put("/:id", (req: Request, res: Response) => {
 });
 
 videosRouter.delete("/:id", (req: Request, res: Response) => {
+    const errors = validateVideoId(req.params.id);
+    if (errors.length > 0) {
+        return sendBadRequest(res, errors);
+    }
+
     const id = Number(req.params.id);
     const index = db.videos.findIndex(v => v.id === id);
     if (index === -1) {

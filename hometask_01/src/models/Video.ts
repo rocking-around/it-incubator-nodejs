@@ -1,4 +1,6 @@
-type Video = {
+import {Resolution} from "./Resolution";
+
+export type Video = {
     id: number;
     title: string;
     author: string;

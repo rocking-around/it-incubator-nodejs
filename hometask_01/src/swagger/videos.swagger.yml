@@ -31,6 +31,10 @@ paths:
                 $ref: "#/components/schemas/Video"
         400:
           description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIErrorResult"
 
   /api/videos/{id}:
     get:
@@ -42,6 +46,7 @@ paths:
           required: true
           schema:
             type: integer
+            minimum: 1
       responses:
         200:
           description: Video found
@@ -51,6 +56,12 @@ paths:
                 $ref: "#/components/schemas/Video"
         404:
           description: Video not found
+        400:
+          description: Invalid video id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIErrorResult"
 
     put:
       summary: Update video
@@ -61,6 +72,7 @@ paths:
           required: true
           schema:
             type: integer
+            minimum: 1
       requestBody:
         required: true
         content:
@@ -72,6 +84,10 @@ paths:
           description: Video updated
         400:
           description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIErrorResult"
         404:
           description: Video not found
 
@@ -84,11 +100,18 @@ paths:
           required: true
           schema:
             type: integer
+            minimum: 1
       responses:
         204:
           description: Video deleted
         404:
           description: Video not found
+        400:
+          description: Invalid video id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIErrorResult"
 
 components:
   schemas:
@@ -113,10 +136,12 @@ components:
       properties:
         title:
           type: string
+          minLength: 1
           maxLength: 40
           example: Node.js lesson
         author:
           type: string
+          minLength: 1
           maxLength: 20
           example: Dmitry
         availableResolutions:
@@ -140,9 +165,11 @@ components:
       properties:
         title:
           type: string
+          minLength: 1
           maxLength: 40
         author:
           type: string
+          minLength: 1
           maxLength: 20
         availableResolutions:
           type: array
@@ -195,3 +222,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Resolution"
+
+    FieldError:
+      type: object
+      required:
+        - message
+        - field
+      properties:
+        message:
+          type: string
+        field:
+          type: string
+
+    APIErrorResult:
+      type: object
+      required:
+        - errorsMessages
+      properties:
+        errorsMessages:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldError"

@@ -1,4 +1,6 @@
-type UpdateVideoInputModel = {
+import {Resolution} from "./Resolution";
+
+export type UpdateVideoInputModel = {
     title: string;
     author: string;
     availableResolutions: Resolution[];
