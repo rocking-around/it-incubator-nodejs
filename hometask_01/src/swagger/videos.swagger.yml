@@ -1,0 +1,197 @@
+paths:
+  /api/videos:
+    get:
+      summary: Get all videos
+      tags: [Videos]
+      responses:
+        200:
+          description: List of all videos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Video"
+
+    post:
+      summary: Create a video
+      tags: [Videos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVideoInputModel"
+      responses:
+        201:
+          description: Video created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Video"
+        400:
+          description: Validation error
+
+  /api/videos/{id}:
+    get:
+      summary: Get video by id
+      tags: [Videos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Video found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Video"
+        404:
+          description: Video not found
+
+    put:
+      summary: Update video
+      tags: [Videos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVideoInputModel"
+      responses:
+        204:
+          description: Video updated
+        400:
+          description: Validation error
+        404:
+          description: Video not found
+
+    delete:
+      summary: Delete video
+      tags: [Videos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        204:
+          description: Video deleted
+        404:
+          description: Video not found
+
+components:
+  schemas:
+    Resolution:
+      type: string
+      enum:
+        - P144
+        - P240
+        - P360
+        - P480
+        - P720
+        - P1080
+        - P1440
+        - P2160
+
+    CreateVideoInputModel:
+      type: object
+      required:
+        - title
+        - author
+        - availableResolutions
+      properties:
+        title:
+          type: string
+          maxLength: 40
+          example: Node.js lesson
+        author:
+          type: string
+          maxLength: 20
+          example: Dmitry
+        availableResolutions:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Resolution"
+          example:
+            - P720
+            - P1080
+
+    UpdateVideoInputModel:
+      type: object
+      required:
+        - title
+        - author
+        - availableResolutions
+        - canBeDownloaded
+        - minAgeRestriction
+        - publicationDate
+      properties:
+        title:
+          type: string
+          maxLength: 40
+        author:
+          type: string
+          maxLength: 20
+        availableResolutions:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Resolution"
+        canBeDownloaded:
+          type: boolean
+        minAgeRestriction:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 18
+        publicationDate:
+          type: string
+          format: date-time
+
+    Video:
+      type: object
+      required:
+        - id
+        - title
+        - author
+        - canBeDownloaded
+        - minAgeRestriction
+        - createdAt
+        - publicationDate
+        - availableResolutions
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        author:
+          type: string
+        canBeDownloaded:
+          type: boolean
+        minAgeRestriction:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 18
+        createdAt:
+          type: string
+          format: date-time
+        publicationDate:
+          type: string
+          format: date-time
+        availableResolutions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Resolution"
