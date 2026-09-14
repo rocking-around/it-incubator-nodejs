@@ -1,4 +1,4 @@
-import {Request, Response, Router} from "express";
+import {Response, Router} from "express";
 import {db} from "../db/db";
 import {APIErrorResult} from "../models/APIErrorResult";
 import {CreateVideoInputModel} from "../models/CreateVideoInputModel";
@@ -14,23 +14,26 @@ import {
 
 export const videosRouter = Router({})
 
-const sendBadRequest = (res: Response, errorsMessages: FieldError[]) => {
+const sendBadRequest = <TResponse>(
+    res: Response<TResponse | APIErrorResult>,
+    errorsMessages: FieldError[]
+) => {
     const errorResult: APIErrorResult = {errorsMessages};
     return res.status(400).send(errorResult);
 };
 
 
-videosRouter.get("/", (req: Request, res: Response) => {
+videosRouter.get<{}, Video[]>("/", (req, res) => {
     res.status(200).send(db.videos);
 })
 
-videosRouter.post("/", (req, res) => {
+videosRouter.post<{}, Video | APIErrorResult, CreateVideoInputModel>("/", (req, res) => {
     const errors = validateCreateVideoInput(req.body);
     if (errors.length > 0) {
         return sendBadRequest(res, errors);
     }
 
-    const input = req.body as CreateVideoInputModel;
+    const input = req.body;
     const lastVideo = db.videos[db.videos.length - 1];
     const newVideo: Video = {
         id: lastVideo ? lastVideo.id + 1 : 1,
@@ -48,7 +51,7 @@ videosRouter.post("/", (req, res) => {
     res.status(201).send(newVideo);
 });
 
-videosRouter.get("/:id", (req: Request, res: Response) => {
+videosRouter.get<{id: string}, Video | APIErrorResult>("/:id", (req, res) => {
     const errors = validateVideoId(req.params.id);
     if (errors.length > 0) {
         return sendBadRequest(res, errors);
@@ -62,7 +65,7 @@ videosRouter.get("/:id", (req: Request, res: Response) => {
     return res.status(404).send();
 })
 
-videosRouter.put("/:id", (req: Request, res: Response) => {
+videosRouter.put<{id: string}, APIErrorResult | void, UpdateVideoInputModel>("/:id", (req, res) => {
     const idErrors = validateVideoId(req.params.id);
     if (idErrors.length > 0) {
         return sendBadRequest(res, idErrors);
@@ -80,7 +83,7 @@ videosRouter.put("/:id", (req: Request, res: Response) => {
         return sendBadRequest(res, bodyErrors);
     }
 
-    const input = req.body as UpdateVideoInputModel;
+    const input = req.body;
 
     video.title = input.title;
     video.author = input.author;
@@ -92,7 +95,7 @@ videosRouter.put("/:id", (req: Request, res: Response) => {
     return res.status(204).send();
 });
 
-videosRouter.delete("/:id", (req: Request, res: Response) => {
+videosRouter.delete<{id: string}, APIErrorResult | void>("/:id", (req, res) => {
     const errors = validateVideoId(req.params.id);
     if (errors.length > 0) {
         return sendBadRequest(res, errors);
